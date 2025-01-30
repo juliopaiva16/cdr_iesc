@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cdr_iesc/screens/home.dart';
+import 'package:cdr_iesc/screens/comparation_loader.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,10 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      routes: {
+        '/': (context) => const Home(title: 'Select an input file, generate the output file and select the columns to compare'),
+        '/compare': (context) => const Loader(title: 'Comparision Loader'),
+      },
     );
   }
 }

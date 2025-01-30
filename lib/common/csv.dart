@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:diacritic/diacritic.dart';
 
 class Result {
   final bool isSuccess;
@@ -117,6 +118,7 @@ class PersonBirthdate {
   }
 
   static void validateFormat(String format) {
+    format = format.toLowerCase();
     if (format != 'ddmmyyyy' && format != 'yyyymmdd') {
       throw Exception(CsvResult.parsingError().toString());
     }
@@ -157,7 +159,14 @@ class CsvUtils {
     }
   }
 
+
   static void isValidName(String name) {
+    // Simplify names removing graphical accents
+    name = removeDiacritics(name).replaceAll(
+      // Everything that is not a letter or space
+      RegExp(r'[^a-zA-Z ]'),
+      '',
+    );
     // Names must only contain letters and spaces
     final RegExp namePattern = RegExp('^[a-zA-Z ]+\$');
     if (!namePattern.hasMatch(name)) {
@@ -233,7 +242,7 @@ class Csv {
   int? bAddressColumn;
 
   late List<String> lines;
-  late List<List<Person>> allRecords; // Pairs of records
+  List<List<Person>> allRecords = [];
 
   Csv({
     required this.inputFilePath,
@@ -270,6 +279,8 @@ class Csv {
 
   void read() {
     lines = File(inputFilePath).readAsLinesSync();
+    lines.removeAt(0); // Remove the header
+    print('lines: ${lines.length}');
     _validate();
     for (final String line in lines) {
       final List<String> columns = line.split(',');
@@ -349,12 +360,13 @@ class Comparator {
     required this.csv,
   });
 
-  void compare() {
+  Future<void> compare() async {
+    csv.read();
     // Write the header to the output file
     File(csv.outputFilePath)
       .writeAsStringSync(
         'nameA,nameB,motherA,motherB,'
-        'birthDateA,birthDateB'
+        'birthDateA,birthDateB,'
         'addressA,addressB,'
         'nameMatch,motherNameMatch,'
         'nameSoundexMatch,motherNameSoundexMatch,'
@@ -426,8 +438,8 @@ class Comparator {
           PersonName(personB.address!.address),
         );
       }
-      String line = '${personA.name},${personB.name},'
-        '${personA.motherName},${personB.motherName},'
+      String line = '${personA.name.name},${personB.name.name},'
+        '${personA.motherName.name},${personB.motherName.name},'
         '${personA.birthDate},${personB.birthDate},'
         '${personA.address?.address ?? ''},${personB.address?.address ?? ''},'
         '${writeLine(
@@ -446,7 +458,6 @@ class Comparator {
       File(csv.outputFilePath)
         .writeAsStringSync('$line\n', mode: FileMode.append);
     }
-
   }
 
   String writeLine({
