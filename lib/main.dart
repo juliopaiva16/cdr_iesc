@@ -18,7 +18,9 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       routes: {
-        '/': (context) => const Home(title: 'Select an input file, generate the output file and select the columns to compare'),
+        '/': (context) => const Home(
+            title:
+                'Select an input file, generate the output file and select the columns to compare'),
         '/compare': (context) => const Loader(title: 'Comparision Loader'),
       },
     );
@@ -27,8 +29,6 @@ class MyApp extends StatelessWidget {
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-
 
   final String title;
 

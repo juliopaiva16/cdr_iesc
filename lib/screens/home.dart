@@ -11,10 +11,10 @@ class Home extends StatefulWidget {
   final String title;
 
   @override
-  _HomeState createState() => _HomeState();
+  HomeState createState() => HomeState();
 }
 
-class _HomeState extends State<Home> {
+class HomeState extends State<Home> {
   String _state = 'ready';
   String? _csvInputPath;
   String? _csvOutputPath;
@@ -68,13 +68,13 @@ class _HomeState extends State<Home> {
 
   Widget _buildCSVInputPath() {
     double width = MediaQuery.of(context).size.width;
-    TextEditingController _csvInputPathController =
+    TextEditingController csvInputPathController =
         TextEditingController(text: _csvInputPath);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TextField(
-          controller: _csvInputPathController,
+          controller: csvInputPathController,
           readOnly: true,
           decoration: InputDecoration(
             enabled: false,
@@ -93,13 +93,13 @@ class _HomeState extends State<Home> {
 
   Widget _buildCSVOutputPath() {
     double width = MediaQuery.of(context).size.width;
-    TextEditingController _csvOutputPathController =
+    TextEditingController csvOutputPathController =
         TextEditingController(text: _csvOutputPath);
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         TextField(
-          controller: _csvOutputPathController,
+          controller: csvOutputPathController,
           readOnly: true,
           decoration: InputDecoration(
             enabled: false,
@@ -119,7 +119,7 @@ class _HomeState extends State<Home> {
   File? _csvFile;
 
   Widget _csvViewer() {
-    if (_csvInputPath == null) {
+    if (_csvInputPath == null || _csvInputPath!.isEmpty) {
       return const Center(
         child: Text('Please select a CSV file to view'),
       );
@@ -150,42 +150,38 @@ class _HomeState extends State<Home> {
                     return AlertDialog(
                       title: const Text('Select Columns'),
                       content: Column(
-                        children: columns
-                            .map((key, val) {
-                              return MapEntry(
-                                key,
-                                Row(
-                                  children: [
-                                    Text(key),
-                                    DropdownButton<int>(
-                                      value: val,
-                                      onChanged: (int? newValue) {
-                                        setState(() {
-                                          columns[key] = newValue;
-                                        });
-                                      },
-                                      items:
-                                          header.asMap().entries.map((entry) {
-                                        return DropdownMenuItem<int>(
-                                          value: entry.key,
-                                          child: Text(entry.value),
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
+                        children: columns.map((key, val) {
+                          return MapEntry(
+                            key,
+                            Row(
+                              children: [
+                                Text(key),
+                                DropdownButton<int>(
+                                  value: val,
+                                  onChanged: (int? newValue) {
+                                    setState(() {
+                                      columns[key] = newValue;
+                                    });
+                                  },
+                                  items: header.asMap().entries.map((entry) {
+                                    return DropdownMenuItem<int>(
+                                      value: entry.key,
+                                      child: Text(entry.value),
+                                    );
+                                  }).toList(),
                                 ),
-                              );
-                            })
-                            .values
-                            .toList(),
+                              ],
+                            ),
+                          );
+                        }).values.toList(),
                       ),
                       actions: [
                         ElevatedButton(
                           onPressed: () {
                             if (_csvOutputPath != null) {
                               // Write the updated CSV to the output file
-                              File(_csvOutputPath!)
-                                  .writeAsStringSync(csv.join('\n'));
+                              File(_csvOutputPath!).writeAsStringSync(
+                                  csv.join('\n'));
                               // Navigate to comparision_loader passing csv
                               Navigator.pushReplacementNamed(
                                 context,
@@ -236,34 +232,34 @@ class _HomeState extends State<Home> {
         ),
       ),
       body: _state == 'loading'
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: Column(
-                children: <Widget>[
-                  // Alinhados acima
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: <Widget>[
-                      const SizedBox(height: 10),
-                      _buildCSVInputPath(),
-                      const SizedBox(height: 20),
-                      _csvViewer(),
-                    ],
-                  ),
-                  const Spacer(),
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: <Widget>[
-                      // Alinhados abaixo
-                      _buildCSVOutputPath(),
-                      const SizedBox(height: 20),
-                      _columnSelector(),
-                      const SizedBox(height: 10),
-                    ],
-                  ),
-                ],
-              ),
+        ? const Center(child: CircularProgressIndicator())
+        : Center(
+            child: Column(
+              children: <Widget>[
+                // Alinhados acima
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: <Widget>[
+                    const SizedBox(height: 10),
+                    _buildCSVInputPath(),
+                    const SizedBox(height: 20),
+                    _csvViewer(),
+                  ],
+                ),
+                const Spacer(),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: <Widget>[
+                    // Alinhados abaixo
+                    _buildCSVOutputPath(),
+                    const SizedBox(height: 20),
+                    _columnSelector(),
+                    const SizedBox(height: 10),
+                  ],
+                ),
+              ],
             ),
+          ),
     );
   }
 }

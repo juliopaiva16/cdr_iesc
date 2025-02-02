@@ -1,11 +1,9 @@
-
-
 import 'dart:io';
 
 import 'package:flutter/material.dart';
 
 class CsvViewer extends StatelessWidget {
-  const CsvViewer({Key? key, required this.csvFile}) : super(key: key);
+  const CsvViewer({super.key, required this.csvFile});
 
   final File csvFile;
 
@@ -20,12 +18,14 @@ class CsvViewer extends StatelessWidget {
         if (snapshot.hasData) {
           List<String> lines = snapshot.data!;
           List<String> header = lines.first.split(',');
-          List<List<String>> rows = lines.sublist(1).map((e) => e.split(',')).toList();
+          List<List<String>> rows =
+              lines.sublist(1).map((e) => e.split(',')).toList();
           return SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: DataTable(
               columns: header.map((e) => DataColumn(label: Text(e))).toList(),
-              rows: rows.getRange(0, 8).map((e) => DataRow(cells: e.map((e) => DataCell(Text(e))).toList())).toList(),
+              rows: rows.getRange(0, 8).map((e) => DataRow(
+                  cells: e.map((e) => DataCell(Text(e))).toList())).toList(),
             ),
           );
         } else {

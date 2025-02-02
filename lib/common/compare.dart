@@ -60,16 +60,97 @@ double quantidadeFragmentosComuns(String nome1, String nome2) {
   return -comuns / (nomes1.length + nomes2.length);
 }
 
+String _soundex(String input) {
+  if (input.isEmpty) return '';
+
+  final buffer = StringBuffer();
+  final String upper = input.toUpperCase().replaceAll(RegExp(r'[^A-Z]'), '');
+  List<String> chars = upper.split('');
+
+  // Mapeamento fonético para português
+  const Map<String, String> encoding = {
+    'BFPV': '1',
+    'CGJKQSXZ': '2',
+    'DT': '3',
+    'L': '4',
+    'MN': '5',
+    'R': '6',
+    'H': '',
+    'W': '',
+    'AÁÀÂÃ': '',
+    'EÉÈÊ': '',
+    'IÍÌÎ': '',
+    'OÓÒÔÕ': '',
+    'UÚÙÛ': '',
+    'YÝ': ''
+  };
+
+  // Codificar primeira letra
+  buffer.write(chars[0]);
+
+  // Codificar caracteres restantes
+  String previousCode = '';
+  for (int i = 1; i < chars.length; i++) {
+    String code = '';
+    encoding.forEach((key, value) {
+      if (key.contains(chars[i])) {
+        code = value;
+        return;
+      }
+    });
+
+    if (code.isNotEmpty && code != previousCode) {
+      buffer.write(code);
+      previousCode = code;
+    }
+  }
+
+  // Completar com zeros e limitar a 4 caracteres
+  String result = buffer.toString().replaceAll(' ', '');
+  result = result.padRight(4, '0').substring(0, 4);
+
+  return result;
+}
+
 // Função para comparar se os nomes são parecidos usando Soundex
 double quantidadeFragmentosParecidos(String nome1, String nome2) {
-  // Aqui seria necessário implementar ou usar uma função Soundex
-  return 0.8; // Exemplo fixo, substitua pelo cálculo real
+  List<String> fragments1 = nome1.split(' ');
+  List<String> fragments2 = nome2.split(' ');
+
+  int similarCount = 0;
+
+  for (String frag1 in fragments1) {
+    String code1 = _soundex(frag1);
+    for (String frag2 in fragments2) {
+      String code2 = _soundex(frag2);
+      if (code1 == code2 && code1.isNotEmpty) {
+        similarCount++;
+        break;
+      }
+    }
+  }
+
+  int totalFragments = fragments1.length + fragments2.length;
+  return totalFragments > 0 ? (similarCount / totalFragments) * 0.8 : 0.0;
 }
 
 // Função para verificar abreviações
 double quantidadeFragmentosAbreviados(String nome1, String nome2) {
-  // Implementação simples para identificar abreviações
-  return 0.5; // Exemplo fixo, substitua pelo cálculo real
+  final RegExp abbrevRegex = RegExp(r'^[A-Za-z]\.$');
+
+  List<String> fragments1 = nome1.split(' ');
+  List<String> fragments2 = nome2.split(' ');
+
+  int abbrevCount = 0;
+
+  // Contar abreviações em ambos os nomes
+  abbrevCount += fragments1.where((f) => abbrevRegex.hasMatch(f)).length;
+  abbrevCount += fragments2.where((f) => abbrevRegex.hasMatch(f)).length;
+
+  // Calcular razão pelo tamanho do primeiro nome (paciente A)
+  int tamanhoPrimeiroNome = fragments1.isNotEmpty ? fragments1.length : 1;
+
+  return (abbrevCount / tamanhoPrimeiroNome) * 0.5;
 }
 
 // Função para calcular a quantidade média de fragmentos
@@ -93,6 +174,7 @@ int datasUmDigitoTrocado(String data1, String data2) {
 
 // Função para verificar se as datas estão invertidas
 int datasInversoDia(String data1, String data2) {
+  if (data1.length != 8 || data2.length != 8) return 0; // Validação
   var dia1 = data1.substring(6, 8);
   var mes1 = data1.substring(4, 6);
   var ano1 = data1.substring(0, 4);
@@ -129,7 +211,6 @@ int levenshtein(String a, String b) {
   return matrix[a.length][b.length];
 }
 
-
 class Compare {
   Paciente pacienteA;
   Paciente pacienteB;
@@ -157,26 +238,46 @@ class Compare {
   // distanciaLevenshteinData
   Map<String, dynamic> runComparision() {
     return {
-      'primeiroFragmentoIgual': primeiroFragmentoIgual(pacienteA.nome, pacienteB.nome),
-      'ultimoFragmentoIgual': ultimoFragmentoIgual(pacienteA.nome, pacienteB.nome),
-      'quantidadeFragmentosIguais': quantidadeFragmentosIguais(pacienteA.nome, pacienteB.nome),
-      'quantidadeFragmentosRaros': quantidadeFragmentosRaros(pacienteA.nome, pacienteB.nome),
-      'quantidadeFragmentosComuns': quantidadeFragmentosComuns(pacienteA.nome, pacienteB.nome),
-      'quantidadeFragmentosParecidos': quantidadeFragmentosParecidos(pacienteA.nome, pacienteB.nome),
-      'quantidadeFragmentosAbreviados': quantidadeFragmentosAbreviados(pacienteA.nome, pacienteB.nome),
-      'quantidadeMediaFragmentos': quantidadeMediaFragmentos(pacienteA.nome, pacienteB.nome),
-      'maePrimeiroFragmentoIgual': primeiroFragmentoIgual(pacienteA.nomeMae, pacienteB.nomeMae),
-      'maeUltimoFragmentoIgual': ultimoFragmentoIgual(pacienteA.nomeMae, pacienteB.nomeMae),
-      'maeQuantidadeFragmentosIguais': quantidadeFragmentosIguais(pacienteA.nomeMae, pacienteB.nomeMae),
-      'maeQuantidadeFragmentosRaros': quantidadeFragmentosRaros(pacienteA.nomeMae, pacienteB.nomeMae),
-      'maeQuantidadeFragmentosComuns': quantidadeFragmentosComuns(pacienteA.nomeMae, pacienteB.nomeMae),
-      'maeQuantidadeFragmentosParecidos': quantidadeFragmentosParecidos(pacienteA.nomeMae, pacienteB.nomeMae),
-      'maeQuantidadeFragmentosAbreviados': quantidadeFragmentosAbreviados(pacienteA.nomeMae, pacienteB.nomeMae),
-      'maeQuantidadeMediaFragmentos': quantidadeMediaFragmentos(pacienteA.nomeMae, pacienteB.nomeMae),
-      'datasIguais': datasIguais(pacienteA.dataNascimento, pacienteB.dataNascimento),
-      'datasUmDigitoTrocado': datasUmDigitoTrocado(pacienteA.dataNascimento, pacienteB.dataNascimento),
-      'datasInversoDia': datasInversoDia(pacienteA.dataNascimento, pacienteB.dataNascimento),
-      'distanciaLevenshteinData': distanciaLevenshteinData(pacienteA.dataNascimento, pacienteB.dataNascimento),
+      'primeiroFragmentoIgual':
+          primeiroFragmentoIgual(pacienteA.nome, pacienteB.nome),
+      'ultimoFragmentoIgual':
+          ultimoFragmentoIgual(pacienteA.nome, pacienteB.nome),
+      'quantidadeFragmentosIguais':
+          quantidadeFragmentosIguais(pacienteA.nome, pacienteB.nome),
+      'quantidadeFragmentosRaros':
+          quantidadeFragmentosRaros(pacienteA.nome, pacienteB.nome),
+      'quantidadeFragmentosComuns':
+          quantidadeFragmentosComuns(pacienteA.nome, pacienteB.nome),
+      'quantidadeFragmentosParecidos':
+          quantidadeFragmentosParecidos(pacienteA.nome, pacienteB.nome),
+      'quantidadeFragmentosAbreviados':
+          quantidadeFragmentosAbreviados(pacienteA.nome, pacienteB.nome),
+      'quantidadeMediaFragmentos':
+          quantidadeMediaFragmentos(pacienteA.nome, pacienteB.nome),
+      'maePrimeiroFragmentoIgual':
+          primeiroFragmentoIgual(pacienteA.nomeMae, pacienteB.nomeMae),
+      'maeUltimoFragmentoIgual':
+          ultimoFragmentoIgual(pacienteA.nomeMae, pacienteB.nomeMae),
+      'maeQuantidadeFragmentosIguais':
+          quantidadeFragmentosIguais(pacienteA.nomeMae, pacienteB.nomeMae),
+      'maeQuantidadeFragmentosRaros':
+          quantidadeFragmentosRaros(pacienteA.nomeMae, pacienteB.nomeMae),
+      'maeQuantidadeFragmentosComuns':
+          quantidadeFragmentosComuns(pacienteA.nomeMae, pacienteB.nomeMae),
+      'maeQuantidadeFragmentosParecidos':
+          quantidadeFragmentosParecidos(pacienteA.nomeMae, pacienteB.nomeMae),
+      'maeQuantidadeFragmentosAbreviados':
+          quantidadeFragmentosAbreviados(pacienteA.nomeMae, pacienteB.nomeMae),
+      'maeQuantidadeMediaFragmentos':
+          quantidadeMediaFragmentos(pacienteA.nomeMae, pacienteB.nomeMae),
+      'datasIguais':
+          datasIguais(pacienteA.dataNascimento, pacienteB.dataNascimento),
+      'datasUmDigitoTrocado': datasUmDigitoTrocado(
+          pacienteA.dataNascimento, pacienteB.dataNascimento),
+      'datasInversoDia':
+          datasInversoDia(pacienteA.dataNascimento, pacienteB.dataNascimento),
+      'distanciaLevenshteinData': distanciaLevenshteinData(
+          pacienteA.dataNascimento, pacienteB.dataNascimento),
     };
   }
 

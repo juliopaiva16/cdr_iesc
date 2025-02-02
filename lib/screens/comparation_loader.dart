@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:cdr_iesc/common/arguments.dart';
 import 'package:cdr_iesc/common/csv.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 class Loader extends StatefulWidget {
@@ -18,9 +17,9 @@ class LoaderState extends State<Loader> {
   Future<void> _comparisionFuture = Future.value();
   String _state = 'loading';
   late Arguments _args;
-  String? inputPath = null;
-  String? outputPath = null;
-  Map<String, int?>? columns = null;
+  String? inputPath;
+  String? outputPath;
+  Map<String, int?>? columns;
 
   Future<void> _compare() async {
     if (inputPath == null || outputPath == null || columns == null) {
@@ -46,13 +45,13 @@ class LoaderState extends State<Loader> {
 
     Comparator comparator = Comparator(csv: csv);
     comparator.compare().then(
-          (value) => setState(() {
-            _state = 'ready';
-          }),
-          onError: (error) => setState(() {
-            _state = 'error';
-          }),
-        );
+      (value) => setState(() {
+        _state = 'ready';
+      }),
+      onError: (error) => setState(() {
+        _state = 'error';
+      }),
+    );
   }
 
   @override
@@ -70,40 +69,40 @@ class LoaderState extends State<Loader> {
   }
 
   Widget _buildBody() => switch (_state) {
-        'loading' => const Center(child: CircularProgressIndicator()),
-        'ready' => Column(mainAxisAlignment: MainAxisAlignment.end, children: [
-            ListTile(
-              title: const Text('Comparison finished'),
-              // Display a message with the path to the output file on a hyperlink
-              // that opens the file in the default application
-              subtitle: GestureDetector(
-                onTap: () => {
-                  // Open the output file with the default application
-                  Process.run('open', [outputPath!]),
-                },
-                child: Row(
-                  children: [
-                    const Text('The comparison results are available at '),
-                    Text(
-                      outputPath!,
-                      style: const TextStyle(
-                        color: Colors.blue,
-                        decoration: TextDecoration.underline,
-                      ),
-                    ),
-                  ],
+    'loading' => const Center(child: CircularProgressIndicator()),
+    'ready' => Column(mainAxisAlignment: MainAxisAlignment.end, children: [
+        ListTile(
+          title: const Text('Comparison finished'),
+          // Display a message with the path to the output file on a hyperlink
+          // that opens the file in the default application
+          subtitle: GestureDetector(
+            onTap: () => {
+              // Open the output file with the default application
+              Process.run('open', [outputPath!]),
+            },
+            child: Row(
+              children: [
+                const Text('The comparison results are available at '),
+                Text(
+                  outputPath!,
+                  style: const TextStyle(
+                    color: Colors.blue,
+                    decoration: TextDecoration.underline,
+                  ),
                 ),
-              ),
-            ),
-          ]),
-        'error' => const Center(
-            child: ListTile(
-              title: Text('Error'),
-              subtitle: Text('An error occurred while comparing the CSV files'),
+              ],
             ),
           ),
-        String() => throw UnimplementedError(),
-      };
+        ),
+      ]),
+    'error' => const Center(
+        child: ListTile(
+          title: Text('Error'),
+          subtitle: Text('An error occurred while comparing the CSV files'),
+        ),
+      ),
+    String() => throw UnimplementedError(),
+  };
 
   @override
   Widget build(BuildContext context) {

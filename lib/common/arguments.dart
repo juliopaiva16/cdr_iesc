@@ -1,5 +1,4 @@
 class Arguments {
-
   // We need the the input path, the output path, and the map of column indices
   // to be passed to the comparision_loader screen. We can create a class to
   // hold these arguments.
