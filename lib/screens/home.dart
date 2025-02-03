@@ -28,6 +28,7 @@ class HomeState extends State<Home> {
     'bMotherNameColumn': null,
     'bBirthDateColumn': null,
     'bGenderColumn': null,
+    'classColumn': null,
   };
 
   void _getCSVInputPath() async {

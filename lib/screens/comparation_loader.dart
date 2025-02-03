@@ -41,11 +41,10 @@ class LoaderState extends State<Loader> {
       bBirthDateColumn: columns!['bBirthDateColumn'] ?? -1,
       aGenderColumn: columns!['aGenderColumn'] ?? -1,
       bGenderColumn: columns!['bGenderColumn'] ?? -1,
+      classColumn: columns!['classColumn'] ?? -1,
     );
 
-    Comparator comparator = Comparator(csv: csv);
-    comparator.compare().then(
-      (value) => setState(() {
+    csv.read().then((_) => setState(() {
         _state = 'ready';
       }),
       onError: (error) => setState(() {
@@ -57,7 +56,7 @@ class LoaderState extends State<Loader> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       // Get the arguments
       _args = ModalRoute.of(context)!.settings.arguments as Arguments;
       inputPath ??= _args.inputPath;
