@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:diacritic/diacritic.dart';
+import 'package:cdr_iesc/common/compare.dart';
 
 class Result {
   final bool isSuccess;
-  final String message; 
+  final String message;
 
   Result({
     required this.isSuccess,
@@ -30,44 +32,44 @@ class CsvResult extends Result {
   CsvResult.noColumns({
     this.additionalMessage,
   }) : super.error(
-      message: 'No columns found',
-    );
+    message: 'No columns found',
+  );
 
   CsvResult.validationError({
     this.additionalMessage,
   }) : super.error(
-      message: 'Validation error',
-    );
+    message: 'Validation error',
+  );
 
   CsvResult.parsingError({
     this.additionalMessage,
   }) : super.error(
-      message: 'Parsing error',
-    );
+    message: 'Parsing error',
+  );
 
   CsvResult.fileDoesNotExist({
     this.additionalMessage,
   }) : super.error(
-      message: 'File does not exist',
-    );
+    message: 'File does not exist',
+  );
 
   CsvResult.fileError({
     this.additionalMessage,
   }) : super.error(
-      message: 'File error',
-    );
+    message: 'File error',
+  );
 
-  CsvResult.unknownError ({
+  CsvResult.unknownError({
     this.additionalMessage,
   }) : super.error(
-      message: 'Unknown error',
-    );
+    message: 'Unknown error',
+  );
 
   CsvResult.comparisonError({
     this.additionalMessage,
   }) : super.error(
-      message: 'Comparison error',
-    );
+    message: 'Comparison error',
+  );
 
   Map<String, dynamic> get toMap => <String, dynamic>{
     'success': isSuccess,
@@ -117,6 +119,7 @@ class PersonBirthdate {
   }
 
   static void validateFormat(String format) {
+    format = format.toLowerCase();
     if (format != 'ddmmyyyy' && format != 'yyyymmdd') {
       throw Exception(CsvResult.parsingError().toString());
     }
@@ -131,6 +134,9 @@ class PersonName {
     CsvUtils.isValidName(name);
     parts = name.trim().split(' ');
   }
+
+  @override
+  String toString() => name;
 }
 
 class PersonAddress {
@@ -143,27 +149,34 @@ class PersonAddress {
     // Remove numbers from the address
     parts.removeWhere((element) => int.tryParse(element) != null);
   }
+
+  @override
+  String toString() => address;
 }
 
 class CsvUtils {
   static void isValidDate(String date) {
     // Dates must be in the format of 'ddmmyyyy' or 'yyyymmdd'
-    final RegExp datePattern = RegExp(
-      '^(0[1-9]|[12][0-9]|3[01])(0[1-9]|1[0-2])(19|20)\\d\\d\$');
+    final RegExp datePattern =
+        RegExp('^(0[1-9]|[12][0-9]|3[01])(0[1-9]|1[0-2])(19|20)\\d\\d\$');
     if (!datePattern.hasMatch(date)) {
       throw Exception(CsvResult.parsingError(
-        additionalMessage: 'Invalid date format'
-      ).toString());
+          additionalMessage: 'Invalid date format').toString());
     }
   }
 
   static void isValidName(String name) {
+    // Simplify names removing graphical accents
+    name = removeDiacritics(name).replaceAll(
+      // Everything that is not a letter or space
+      RegExp(r'[^a-zA-Z ]'),
+      '',
+    );
     // Names must only contain letters and spaces
     final RegExp namePattern = RegExp('^[a-zA-Z ]+\$');
     if (!namePattern.hasMatch(name)) {
       throw Exception(CsvResult.parsingError(
-        additionalMessage: 'Invalid name format'
-      ).toString());
+          additionalMessage: 'Invalid name format').toString());
     }
   }
 
@@ -172,8 +185,7 @@ class CsvUtils {
     final RegExp addressPattern = RegExp('^[a-zA-Z0-9 ]+\$');
     if (!addressPattern.hasMatch(address)) {
       throw Exception(CsvResult.parsingError(
-        additionalMessage: 'Invalid address format'
-      ).toString());
+          additionalMessage: 'Invalid address format').toString());
     }
   }
 
@@ -182,8 +194,7 @@ class CsvUtils {
     final RegExp genderPattern = RegExp('^[MF]\$');
     if (!genderPattern.hasMatch(gender)) {
       throw Exception(CsvResult.parsingError(
-        additionalMessage: 'Invalid gender format'
-      ).toString());
+          additionalMessage: 'Invalid gender format').toString());
     }
   }
 }
@@ -196,9 +207,14 @@ enum PersonGender {
     if (gender == 'M') return PersonGender.male;
     if (gender == 'F') return PersonGender.female;
     throw Exception(CsvResult.parsingError(
-      additionalMessage: 'Invalid date format'
-    ).toString());
+        additionalMessage: 'Invalid date format').toString());
   }
+
+  @override
+  String toString() => switch (this) {
+      male => 'M',
+      female => 'F',
+    };
 }
 
 class Person {
@@ -215,6 +231,16 @@ class Person {
     required this.gender,
     this.address,
   });
+
+  @override
+  String toString() {
+    return 'Person('
+        'name: ${name.toString()}, '
+        'motherName: ${motherName.toString()}, '
+        'birthDate: ${birthDate.toString()}, '
+        'gender: ${gender.toString()}'
+        ')';
+  }
 }
 
 class Csv {
@@ -229,11 +255,12 @@ class Csv {
   int bBirthDateColumn;
   int aGenderColumn;
   int bGenderColumn;
+  int classColumn;
   int? aAddressColumn;
   int? bAddressColumn;
 
   late List<String> lines;
-  late List<List<Person>> allRecords; // Pairs of records
+  List<List<Person>> allRecords = [];
 
   Csv({
     required this.inputFilePath,
@@ -247,6 +274,7 @@ class Csv {
     required this.bBirthDateColumn,
     required this.aGenderColumn,
     required this.bGenderColumn,
+    required this.classColumn,
     this.aAddressColumn,
     this.bAddressColumn,
   });
@@ -262,17 +290,30 @@ class Csv {
       lines.first[bBirthDateColumn],
       lines.first[aGenderColumn],
       lines.first[bGenderColumn],
+      lines.first[classColumn],
     ];
     if (aAddressColumn != null) columns.add(lines.first[aAddressColumn!]);
     if (bAddressColumn != null) columns.add(lines.first[bAddressColumn!]);
     return columns;
   }
 
-  void read() {
-    lines = File(inputFilePath).readAsLinesSync();
+  Future<void> read() async {
+    lines = await File(inputFilePath).readAsLines();
+    lines.removeAt(0); // Remove the header
     _validate();
-    for (final String line in lines) {
+
+    // Write the header
+    await File(outputFilePath).writeAsString(
+      '${Compare.getResultHeader.join(',')}\n',
+      mode: FileMode.writeOnly,
+    );
+
+    for (final (int, String) element in lines.indexed) {
+      final int index = element.$1;
+      final String line = element.$2;
+
       final List<String> columns = line.split(',');
+
       Person personA = Person(
         name: PersonName(columns[aNameColumn]),
         motherName: PersonName(columns[aMotherNameColumn]),
@@ -298,7 +339,12 @@ class Csv {
           : null,
       );
       // If everything is valid, add the record to the list
-      allRecords.add([personA, personB]);
+      await Comparator.compare(
+        personA: personA,
+        personB: personB,
+        outputFilePath: outputFilePath,
+        classe: columns[classColumn],
+      );
     }
   }
 
@@ -332,7 +378,6 @@ class Csv {
             columns[bBirthDateColumn],
             dateFormat: dateFormat,
           ),
-
         );
       }
     } on CsvResult catch (e) {
@@ -349,245 +394,35 @@ class Comparator {
     required this.csv,
   });
 
-  void compare() {
-    // Write the header to the output file
-    File(csv.outputFilePath)
-      .writeAsStringSync(
-        'nameA,nameB,motherA,motherB,'
-        'birthDateA,birthDateB'
-        'addressA,addressB,'
-        'nameMatch,motherNameMatch,'
-        'nameSoundexMatch,motherNameSoundexMatch,'
-        'nameAbbreviationMatch,motherNameAbbreviationMatch,'
-        'birthDateMatch,'
-        'addressMatch,addressSoundexMatch,addressAbbreviationMatch\n',
+  static Future<void> compare({
+    required Person personA,
+    required Person personB,
+    required String outputFilePath,
+    required String classe,
+  }) async {
+      final Paciente pacienteA = Paciente(
+        nome: personA.name.name,
+        nomeMae: personA.motherName.name,
+        dataNascimento: personA.birthDate.toString(),
+        sexo: personA.gender.toString(),
       );
-    for (final List<Person> record in csv.allRecords) {
-      if (record.length != 2) {
-        throw Exception(CsvResult.comparisonError(
-          additionalMessage: 'Invalid record length, must be a pair',
-        ).toString());
-      }
-      final Person personA = record.first;
-      final Person personB = record.last;
+      final Paciente pacienteB = Paciente(
+        nome: personB.name.name,
+        nomeMae: personB.motherName.name,
+        dataNascimento: personB.birthDate.toString(),
+        sexo: personB.gender.toString(),
+      );
 
-      // Get the fraction of name parts that match
-      final double nameMatch = _compareNames(personA.name, personB.name);
-      // Get the fraction of mother name parts that match
-      final double motherNameMatch = _compareNames(
-        personA.motherName,
-        personB.motherName,
+      Compare comparator = Compare(
+        pacienteA: pacienteA,
+        pacienteB: pacienteB,
+        classe: classe,
       );
-      // Get the fraction of soundex codes that match
-      final double nameSoundexMatch = _compareNamesBySoundex(
-        personA.name,
-        personB.name,
-      );
-      // Get the fraction of soundex codes that match for the mother names
-      final double motherNameSoundexMatch = _compareNamesBySoundex(
-        personA.motherName,
-        personB.motherName,
-      );
-      // Get the fraction of abbreviated names that match
-      final double nameAbbreviationMatch = _compareNamesByAbbreviation(
-        personA.name,
-        personB.name,
-      );
-      // Get the fraction of abbreviated names that match for the mother names
-      final double motherNameAbbreviationMatch = _compareNamesByAbbreviation(
-        personA.motherName,
-        personB.motherName,
-      );
-      // Get the fraction of birthdate parts that match
-      final double birthDateMatch = _compareBirthDates(
-        personA.birthDate,
-        personB.birthDate,
-      );
-      double? addressMatch;
-      double? addressSoundexMatch;
-      double? addressAbbreviationMatch;
-      if (
-        personA.address != null &&
-        personB.address != null
-      ) {
-      // Get the fraction of address parts that match
-        addressMatch = _compareNames(
-          PersonName(personA.address!.address),
-          PersonName(personB.address!.address),
-        );
-        // Get the fraction of address parts that the soundex codes match
-        addressSoundexMatch = _compareNamesBySoundex(
-          PersonName(personA.address!.address),
-          PersonName(personB.address!.address),
-        );
-        // Get the fraction of address parts that the abbreviated names match
-        addressAbbreviationMatch = _compareNamesByAbbreviation(
-          PersonName(personA.address!.address),
-          PersonName(personB.address!.address),
-        );
-      }
-      String line = '${personA.name},${personB.name},'
-        '${personA.motherName},${personB.motherName},'
-        '${personA.birthDate},${personB.birthDate},'
-        '${personA.address?.address ?? ''},${personB.address?.address ?? ''},'
-        '${writeLine(
-          nameMatch: nameMatch,
-          motherNameMatch: motherNameMatch,
-          nameSoundexMatch: nameSoundexMatch,
-          motherNameSoundexMatch: motherNameSoundexMatch,
-          nameAbbreviationMatch: nameAbbreviationMatch,
-          motherNameAbbreviationMatch: motherNameAbbreviationMatch,
-          birthDateMatch: birthDateMatch,
-          addressMatch: addressMatch,
-          addressSoundexMatch: addressSoundexMatch,
-          addressAbbreviationMatch: addressAbbreviationMatch,
-        )}';
+
       // Write the line to the output file
-      File(csv.outputFilePath)
-        .writeAsStringSync('$line\n', mode: FileMode.append);
-    }
-
-  }
-
-  String writeLine({
-    required double nameMatch,
-    required double motherNameMatch,
-    required double nameSoundexMatch,
-    required double motherNameSoundexMatch,
-    required double nameAbbreviationMatch,
-    required double motherNameAbbreviationMatch,
-    required double birthDateMatch,
-    double? addressMatch,
-    double? addressSoundexMatch,
-    double? addressAbbreviationMatch,
-  }) {
-    return 
-      '$nameMatch,$motherNameMatch,'
-      '$nameSoundexMatch,$motherNameSoundexMatch,'
-      '$nameAbbreviationMatch,$motherNameAbbreviationMatch,'
-      '$birthDateMatch,'
-      '${addressMatch ?? ''},'
-      '${addressSoundexMatch ?? ''},'
-      '${addressAbbreviationMatch ?? ''}';
-  }
-
-  double _compareNames(PersonName nameA, PersonName nameB) {
-    // Get the number of names that are common to both
-    int commonNames = Set<String>
-      .from(nameA.parts)
-      .intersection(Set<String>.from(nameB.parts))
-      .length;
-    // Which name is larger?
-    int largerSetSize = nameA.parts.length > nameB.parts.length
-      ? nameA.parts.length
-      : nameB.parts.length;
-    // Get the proportion of common names
-    double proportion = commonNames / largerSetSize;
-    return proportion;
-  }
-
-
-  List<String> soundex(PersonName name) {
-    Map<String, int> soundexMap = <String, int>{
-      'B': 1, 'F': 1, 'P': 1, 'V': 1,
-      'C': 2, 'G': 2, 'J': 2, 'K': 2, 'Q': 2, 'S': 2, 'X': 2, 'Z': 2,
-      'D': 3, 'T': 3,
-      'L': 4,
-      'M': 5, 'N': 5,
-      'R': 6,
-    };
-    // Get the soundex code for each name
-    // The soundex code is a 4-character string, where the first character is
-    // the first letter of the name and the remaining characters are the
-    // soundex values of the remaining letters
-    List<String> soundexCodes = [];
-    for (final String part in name.parts) {
-      String soundexCode = part[0];
-      for (int i = 1; i < part.length; i++) {
-        final String letter = part[i].toUpperCase();
-        final int soundexValue = soundexMap[letter] ?? 0;
-        if (soundexValue != 0) {
-          soundexCode += soundexValue.toString();
-        }
-      }
-      // Pad the soundex code with zeros
-      soundexCode = soundexCode.padRight(4, '0');
-      soundexCodes.add(soundexCode);
-    }
-    return soundexCodes;
-  }
-
-
-  double _compareNamesBySoundex(PersonName nameA, PersonName nameB) {
-    // Get the soundex codes for each name
-    List<String> soundexA = soundex(nameA);
-    List<String> soundexB = soundex(nameB);
-    // Get the number of soundex codes that are common to both
-    int commonSoundex = Set<String>
-      .from(soundexA)
-      .intersection(Set<String>.from(soundexB))
-      .length;
-    // Which name is larger?
-    int largerSetSize = soundexA.length > soundexB.length
-      ? soundexA.length
-      : soundexB.length;
-    // Get the proportion of common soundex codes
-    double proportion = commonSoundex / largerSetSize;
-    return proportion;
-  }
-  
-  // Get names that are abbreviated (e.g. 'John' -> 'J')
-  List<String> abbreviate(PersonName name) {
-    List<String> abbreviations = [];
-    name.parts.where((element) => element.length == 1).forEach((element) {
-      abbreviations.add(element);
-    });
-    return abbreviations;
-  }
-
-  // Get the fraction of abbreviated names that match with complete names
-  double _compareNamesByAbbreviation(PersonName nameA, PersonName nameB) {
-    //
-    // First, for A
-    // Get the abbreviated names for each name
-    List<String> abbreviationsA = abbreviate(nameA);
-    List<String> abbreviationsB = nameB.parts.map((e) => e[0]).toList();
-    // Get the number of abbreviated names that are common to B
-    int commonAbbreviationsFromA = Set<String>
-      .from(abbreviationsA)
-      .intersection(Set<String>.from(abbreviationsB))
-      .length;
-    //
-    // Now, for B
-    // Get the abbreviated names for each name
-    abbreviationsB = abbreviate(nameB);
-    abbreviationsA = nameA.parts.map((e) => e[0]).toList();
-    // Get the number of abbreviated names that are common to A
-    int commonAbbreviationsFromB = Set<String>
-      .from(abbreviationsB)
-      .intersection(Set<String>.from(abbreviationsA))
-      .length;
-    // Which name is larger?
-    int setSize = abbreviationsA.length + abbreviationsB.length;
-    // Get the proportion of common abbreviated names
-    double proportion =
-      (commonAbbreviationsFromA / setSize) +
-      (commonAbbreviationsFromB / setSize);
-    return proportion;
-  }
-
-  double _compareBirthDates(
-    PersonBirthdate birthDateA,
-    PersonBirthdate birthDateB,
-  ) {
-    // This comparison must return the percentage of matching characteres
-    // between the two birthdates
-    int commonCharacters = 0;
-    for (int i = 0; i < 8; i++) {
-      if ('$birthDateA'[i] == '$birthDateB'[i]) {
-        commonCharacters++;
-      }
-    }
-    return commonCharacters / 8;
+      await File(outputFilePath).writeAsString(
+          '${comparator.getResultLine().join(',')}\n',
+          mode: FileMode.writeOnlyAppend,
+      );
   }
 }
