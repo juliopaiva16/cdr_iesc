@@ -19,6 +19,9 @@ jobs:
             flutter_channel: stable
 
     steps:
+      - name: Install dependencies
+        run: sudo apt-get install -y bash curl file git 2.x mkdir rm unzip which xz-utils zip libglu1-mesa
+
       - name: Check out repository
         uses: actions/checkout@v2
 
