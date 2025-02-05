@@ -31,6 +31,20 @@ class HomeState extends State<Home> {
     'classColumn': null,
   };
 
+  String t(String key) {
+    return <String, String>{
+      'aNameColumn': 'A - Name',
+      'aMotherNameColumn': 'A - Mother Name',
+      'aBirthDateColumn': 'A - Birth Date',
+      'aGenderColumn': 'A - Gender',
+      'bNameColumn': 'B - Name',
+      'bMotherNameColumn': 'B - Mother Name',
+      'bBirthDateColumn': 'B - Birth Date',
+      'bGenderColumn': 'B - Gender',
+      'classColumn': 'Classification',
+    }[key] ?? 'Not found';
+  }
+
   void _getCSVInputPath() async {
     // Open file picker and get the path
     FilePickerResult? result = await FilePicker.platform.pickFiles(
@@ -156,7 +170,12 @@ class HomeState extends State<Home> {
                             key,
                             Row(
                               children: [
-                                Text(key),
+                                Expanded(
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(t(key)),
+                                  ),
+                                ),
                                 DropdownButton<int>(
                                   value: val,
                                   onChanged: (int? newValue) {
@@ -182,7 +201,9 @@ class HomeState extends State<Home> {
                             if (_csvOutputPath != null) {
                               // Write the updated CSV to the output file
                               File(_csvOutputPath!).writeAsStringSync(
-                                  csv.join('\n'));
+                                csv.join('\n'),
+                                mode: FileMode.write,
+                              );
                               // Navigate to comparision_loader passing csv
                               Navigator.pushReplacementNamed(
                                 context,

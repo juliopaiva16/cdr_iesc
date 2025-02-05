@@ -235,11 +235,11 @@ class Person {
   @override
   String toString() {
     return 'Person('
-        'name: ${name.toString()}, '
-        'motherName: ${motherName.toString()}, '
-        'birthDate: ${birthDate.toString()}, '
-        'gender: ${gender.toString()}'
-        ')';
+      'name: ${name.toString()}, '
+      'motherName: ${motherName.toString()}, '
+      'birthDate: ${birthDate.toString()}, '
+      'gender: ${gender.toString()}'
+      ')';
   }
 }
 
@@ -309,9 +309,7 @@ class Csv {
     );
 
     for (final (int, String) element in lines.indexed) {
-      final int index = element.$1;
       final String line = element.$2;
-
       final List<String> columns = line.split(',');
 
       Person personA = Person(
@@ -400,23 +398,23 @@ class Comparator {
     required String outputFilePath,
     required String classe,
   }) async {
-      final Paciente pacienteA = Paciente(
-        nome: personA.name.name,
-        nomeMae: personA.motherName.name,
-        dataNascimento: personA.birthDate.toString(),
-        sexo: personA.gender.toString(),
+      final Patient pacienteA = Patient(
+        name: personA.name.name,
+        motherName: personA.motherName.name,
+        birthDate: personA.birthDate.toString(),
+        gender: personA.gender.toString(),
       );
-      final Paciente pacienteB = Paciente(
-        nome: personB.name.name,
-        nomeMae: personB.motherName.name,
-        dataNascimento: personB.birthDate.toString(),
-        sexo: personB.gender.toString(),
+      final Patient pacienteB = Patient(
+        name: personB.name.name,
+        motherName: personB.motherName.name,
+        birthDate: personB.birthDate.toString(),
+        gender: personB.gender.toString(),
       );
 
       Compare comparator = Compare(
-        pacienteA: pacienteA,
-        pacienteB: pacienteB,
-        classe: classe,
+        patientA: pacienteA,
+        patientB: pacienteB,
+        classification: classe,
       );
 
       // Write the line to the output file

@@ -19,8 +19,10 @@ class MyApp extends StatelessWidget {
       ),
       routes: {
         '/': (context) => const Home(
-            title:
-                'Select an input file, generate the output file and select the columns to compare'),
+          title:
+            'Select an input file, generate the output file and '
+            'select the columns to compare',
+        ),
         '/compare': (context) => const Loader(title: 'Comparision Loader'),
       },
     );
